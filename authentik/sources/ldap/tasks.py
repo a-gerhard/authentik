@@ -63,11 +63,14 @@ def ldap_sync_paginator(source: LDAPSource, sync: type[BaseLDAPSynchronizer]) ->
     """Return a list of task signatures with LDAP pagination data"""
     sync_inst: BaseLDAPSynchronizer = sync(source)
     signatures = []
-    for page in sync_inst.get_objects():
-        page_cache_key = CACHE_KEY_PREFIX + str(uuid4())
-        cache.set(page_cache_key, page, 60 * 60 * CONFIG.get_int("ldap.task_timeout_hours"))
-        page_sync = ldap_sync.si(source.pk, class_to_path(sync), page_cache_key)
-        signatures.append(page_sync)
+    try:
+        for page in sync_inst.get_objects():
+            page_cache_key = CACHE_KEY_PREFIX + str(uuid4())
+            cache.set(page_cache_key, page, 60 * 60 * CONFIG.get_int("ldap.task_timeout_hours"))
+            page_sync = ldap_sync.si(source.pk, class_to_path(sync), page_cache_key)
+            signatures.append(page_sync)
+    except LDAPException:
+        pass
     return signatures
 
 
